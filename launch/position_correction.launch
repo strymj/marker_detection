@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  
+  <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    <param name="video_device" value="/dev/video1" />
+    <param name="image_width" value="640" />
+    <param name="image_height" value="480" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="camera_frame_id" value="vehicle_cam" />
+    <param name="io_method" value="mmap"/>
+    <param name="framerate" value="30" />
+  </node>
+
+  <node name="marker_detection" pkg="marker_detection" type="marker_detection_node" output="screen" >
+    <param name="camera_topic" value="/usb_cam/image_raw" />
+    <param name="header_frame_id" value="vehicle_cam" />
+    <param name="child_frame_id" value="marker" />
+    <param name="camera_frame_rate" value="30" />
+    <param name="triangle_side_length" value="0.045" />
+    <param name="reverse" value="true" />
+    <param name="image_show" value="false" />
+  </node>
+
+  <node name="position_correction" pkg="picture_joystick" type="position_correction" output="screen" >
+    <param name="lookup_tf_header" value="vehicle_cam" />
+    <param name="lookup_tf_child" value="marker" />
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" output="screen" />
+
+</launch>
