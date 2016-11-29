@@ -66,7 +66,7 @@ int main (int argc, char** argv)
 			if(image_show_) {
 				cv::imshow("result", result_img);
 				cv::imshow("binary", binary_img);
-				cv::waitKey(10);  // require for imshow
+				cv::waitKey(3);  // require for imshow
 			}
 		}
 		ImgSub = false;

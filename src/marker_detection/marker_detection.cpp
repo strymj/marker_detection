@@ -1,18 +1,6 @@
 #include <marker_detection/marker_detection.h>
 using namespace std;
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg)
-{
-	try{
-		cv_bridge::CvImage cv_img=*cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-		result_img = cv_img.image;
-		ImgSub = true;
-	}
-	catch (cv_bridge::Exception& e){
-		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
-	}	
-};
-
 void keychangeHSV(vector<HSV>& list)
 {
 	static int n = 0;
@@ -188,25 +176,41 @@ void calc_markerpose(cv::Vec3d& object_pose, Regiondata* ccl, cv::Mat& image, do
 
 	cv::Vec2d ex(0,-1);
 	cv::Vec2d center = cv::Vec2d((ccl[T].center + ccl[L].center + ccl[R].center) / 3);
-	cv::Vec2d xmapped = (ccl[R].center - ccl[L].center) / sqrt(3); 
-	cv::Vec2d ymapped = (ccl[T].center*2 - ccl[L].center -ccl[R].center) / 3;
-	double ymapped_norm = cv::norm(ymapped);
-	double yaw = acos(ex.dot(ymapped)/ymapped_norm);
-	if(0<ymapped[0]) yaw *= -1;
+	cv::Vec2d Xmapped = (ccl[R].center - ccl[L].center); 
+	cv::Vec2d Ymapped = (ccl[T].center*2 - ccl[L].center -ccl[R].center) / sqrt(3);
+	double yaw = acos(ex.dot(Ymapped)/cv::norm(Ymapped));
+	if(0<Ymapped[0]) yaw *= -1;
 
-	double xz1 = pow(xmapped[0]*ymapped[0]+xmapped[1]*ymapped[1], 2);
-	double xz2 = ( pow(xmapped[0], 2) + pow(xmapped[1], 2) - pow(ymapped[0], 2) -pow(ymapped[1], 2) ) / 4;
-	double xz = sqrt(sqrt(xz1-xz2)-xz2);
+	double equ11 = pow(Xmapped[0], 2) + pow(Xmapped[1], 2) - pow(Ymapped[0], 2) -pow(Ymapped[1], 2);
+	double equ12 = Xmapped[0]*Ymapped[0] + Xmapped[1]*Ymapped[1];
+	double xz = sqrt(sqrt(equ12*equ12+equ11*equ11/4)-equ11/2);
 	if(ccl[R].pixels < ccl[L].pixels) xz *= -1;
-	double yz = - (xmapped[0]*ymapped[0]+xmapped[1]*ymapped[1]) / xz;
-	cv::Vec3d xaxis(xmapped[0], xmapped[1], xz);
-	cv::Vec3d yaxis(ymapped[0], ymapped[1], yz);
-	cout<<"xaxis = "<<xaxis<<endl;
-	cout<<"yaxis = "<<yaxis<<endl<<endl;
-	cv::Vec3d zaxis = yaxis.cross(xaxis);
-	zaxis = zaxis / cv::norm(zaxis) * cv::norm(xaxis);
-	cv::Vec2d zmapped(zaxis[0], zaxis[1]);
+	double yz = - equ12 / xz;
+	cv::Vec3d Xaxis(Xmapped[0], Xmapped[1], xz);
+	cv::Vec3d Yaxis(Ymapped[0], Ymapped[1], yz);
+	cv::Vec3d Zaxis = Yaxis.cross(Xaxis);
+	double axis_norm = cv::norm(Xaxis);
+	//cout<<"Xaxis = "<<Xaxis<<endl;
+	//cout<<"Yaxis = "<<Yaxis<<endl<<endl;
+	Zaxis = Zaxis / cv::norm(Zaxis) * axis_norm;
+	cv::Vec2d Zmapped(Zaxis[0], Zaxis[1]);
 	
+	cout<<"equ11 : "<<equ11<<endl;
+	cout<<"equ12 : "<<equ12<<endl;
+	cout<<"Xaxis : "<<Xaxis<<endl;
+	cout<<"Yaxis : "<<Yaxis<<endl;
+	cout<<"Zaxis : "<<Zaxis<<endl;
+	
+	// normalization
+	Xaxis /= axis_norm;
+	Yaxis /= axis_norm;
+	Zaxis /= axis_norm;
+
+	double ESP = 0.0001;
+	double beta = asin(-Xaxis[2]);
+	double alpha = atan2(Xaxis[1], Xaxis[0]);
+	double gamma = atan2(Yaxis[2], Zaxis[2]);
+
 	//cv::Vec2d x(10, 0.0);
 	//cv::Vec2d y(0.0, 10);
 	//cv::Vec3d z(0.0, 0.0, 10);
@@ -217,26 +221,30 @@ void calc_markerpose(cv::Vec3d& object_pose, Regiondata* ccl, cv::Mat& image, do
 	//	(cv::Point2f)(center+x+y)};
 	//cv::Point2f pts2[] = {
 	//	(cv::Point2f)center,
-	//	(cv::Point2f)(center+xmapped),
-	//	(cv::Point2f)(center+ymapped),
-	//	(cv::Point2f)(center+xmapped+ymapped)};
+	//	(cv::Point2f)(center+Xmapped),
+	//	(cv::Point2f)(center+Ymapped),
+	//	(cv::Point2f)(center+Xmapped+Ymapped)};
 	//cv::Mat perspective_matrix = cv::getPerspectiveTransform(pts1, pts2);
 	//cv::Vec3d zd = (cv::Vec3d)cv::Mat1d(perspective_matrix * cv::Mat1d(z));
-	//cv::Vec2d zmapped(zd[0], zd[1]);
+	//cv::Vec2d Zmapped(zd[0], zd[1]);
 
 	cv::Vec2d cc = tfcv2center(center, cv::Vec2d(image.cols/2, image.rows/2));
-	object_pose[0] = cc[0] * sidelen/(ymapped_norm*sqrt(3));
-	object_pose[1] = cc[1] * sidelen/(ymapped_norm*sqrt(3));
+	object_pose[0] = cc[0] * sidelen / axis_norm;
+	object_pose[1] = cc[1] * sidelen / axis_norm;
 	object_pose[2] = yaw;
 
 	object_pose[0] *= -1;
 	object_pose[2] *= -1;
 
+	cout<<"calc finish"<<endl;
 
-	double c_size = ymapped_norm * 0.2;
-	arrow(image, cv::Point(center), cv::Point(center+xmapped), cv::Scalar(120,120,255));
-	arrow(image, cv::Point(center), cv::Point(center+ymapped), cv::Scalar(120,255,120));
-	arrow(image, cv::Point(center), cv::Point(center+zmapped), cv::Scalar(255,120,120));
+	double c_size = 5;
+		//axis_norm * 0.2;
+	//cout<<"c_size"<<c_size<<endl;
+	
+	arrow(image, cv::Point(center), cv::Point(center+Xmapped), cv::Scalar(100,100,255));
+	arrow(image, cv::Point(center), cv::Point(center+Ymapped), cv::Scalar(100,255,100));
+	arrow(image, cv::Point(center), cv::Point(center+Zmapped), cv::Scalar(255,100,100));
 	cv::circle(image, ccl[T].center, c_size, cv::Scalar(255,255,0), 2);
 	cv::circle(image, ccl[L].center, c_size, cv::Scalar(255,255,100), -1);
 	cv::circle(image, ccl[R].center, c_size, cv::Scalar(255,255,200), -1);
@@ -300,6 +308,18 @@ void draw_text(cv::Vec3d pose, cv::Mat& image)
 	cv::putText(image, s[1],       cv::Point(x3, y1), font, fontsize, color_string, fontweight, CV_AA);
 	cv::putText(image, s[2],       cv::Point(x3, y2), font, fontsize, color_string, fontweight, CV_AA);
 }
+
+void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+{
+	try{
+		cv_bridge::CvImage cv_img=*cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+		result_img = cv_img.image;
+		ImgSub = true;
+	}
+	catch (cv_bridge::Exception& e){
+		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
+	}	
+};
 
 void BroadcastTf(string header, string child, cv::Vec3d pose)
 {
