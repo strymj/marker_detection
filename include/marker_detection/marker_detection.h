@@ -54,12 +54,12 @@ void keychangeHSV(vector<HSV>&);
 void color_extract(cv::Mat, cv::Mat&, vector<HSV>);
 
 // labeling (input mat is binary img)
-void label(cv::Mat, vector<Regiondata>& , unsigned int remove_pix = 100);
+void label(cv::Mat, vector<Regiondata>& , unsigned int remove_pix = 200);
 
 // if marker exist -> return true 
 bool markerpose_detection(cv::Vec3d&, vector<Regiondata>, cv::Mat&, double);
 bool samesize(Regiondata*, double threshold = 0.4);
-bool triangle(Regiondata*, double threshold = 0.5);
+bool triangle(Regiondata*, double threshold = 0.6);
 bool colorcheck(Regiondata*, cv::Mat&);
 void calc_markerpose(cv::Vec3d&, Regiondata*, cv::Mat&, double);
 

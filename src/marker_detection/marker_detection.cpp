@@ -79,15 +79,39 @@ bool markerpose_detection(cv::Vec3d& markerpose, vector<Regiondata> regiondata, 
 {
 	bool marker_exist = false;
 	vector<cv::Vec2d> marker_circle;
-	for(int i=0; i+2<regiondata.size(); i++) {
-		Regiondata comp[3] = {regiondata[i], regiondata[i+1], regiondata[i+2]};
-		if(samesize(comp) && triangle(comp)) {
-			calc_markerpose(markerpose, comp, image, sidelen);
-			marker_exist = true;
-			cout<<"marker exist."<<endl<<endl;
-			break;
+	int num1=-1, num2=-1, num3=-1;
+	double normmin = -1.0;
+	Regiondata comp[3];
+	for(int i=0; i<regiondata.size(); i++) {
+		for(int j=i+1; j<regiondata.size(); j++) {
+			for(int k=j+1; k<regiondata.size(); k++) {
+				comp[0] = regiondata[i];
+				comp[1] = regiondata[j];
+				comp[2] = regiondata[k];
+				if(samesize(comp) && triangle(comp)) {
+					double normsum = 0.0;
+					for(int l=0; l<3; l++) {
+						cv::Vec2d vec = cv::Vec2d(comp[l].center - comp[(l+1)%3].center);
+						normsum += cv::norm(vec);
+						if(normsum < normmin || normmin < 0) {
+							normmin = normsum;
+							num1 = i;
+							num2 = j;
+							num3 = k;
+						}
+					}
+				}
+			}
 		}
-	if(i+2 == regiondata.size()-1) cout<<"cannot find marker."<<endl<<endl;
+	}
+	//Regiondata comp[3] = {regiondata[i], regiondata[i+1], regiondata[i+2]};
+	if(num1 != -1 && num2 != -1 && num3 != -1) {
+		comp[0] = regiondata[num1];
+		comp[1] = regiondata[num2];
+		comp[2] = regiondata[num3];
+		calc_markerpose(markerpose, comp, image, sidelen);
+		marker_exist = true;
+		cout<<"marker exist."<<endl<<endl;
 	}
 	draw_text(markerpose, image);
 	return marker_exist;
@@ -181,52 +205,48 @@ void calc_markerpose(cv::Vec3d& object_pose, Regiondata* ccl, cv::Mat& image, do
 	double yaw = acos(ex.dot(Ymapped)/cv::norm(Ymapped));
 	if(0<Ymapped[0]) yaw *= -1;
 
+	double sizeT = ccl[T].size.x * ccl[T].size.y;
+	double sizeL = ccl[L].size.x * ccl[L].size.y;
+	double sizeR = ccl[R].size.x * ccl[R].size.y;
+	
+	// calc xz
 	double equ11 = pow(Xmapped[0], 2) + pow(Xmapped[1], 2) - pow(Ymapped[0], 2) -pow(Ymapped[1], 2);
 	double equ12 = Xmapped[0]*Ymapped[0] + Xmapped[1]*Ymapped[1];
 	double xz = sqrt(sqrt(equ12*equ12+equ11*equ11/4)-equ11/2);
-	if(ccl[R].pixels < ccl[L].pixels) xz *= -1;
-	double yz = - equ12 / xz;
+	if(sizeR < sizeL) xz *= -1;
+	//double yzd = - equ12 / xz;
+	
+	//calc yz
+	double equ21 = pow(Ymapped[0], 2) + pow(Ymapped[1], 2) - pow(Xmapped[0], 2) -pow(Xmapped[1], 2);
+	double equ22 = Ymapped[0]*Xmapped[0] + Ymapped[1]*Xmapped[1];
+	double yz = sqrt(sqrt(equ22*equ22+equ21*equ21/4)-equ21/2);
+	if(sizeT*2 < sizeL+sizeR) yz *= -1;
+	//double xzd = - equ22 / yz;
+
+	//xz = (xz*3+xzd)/4;
+	//yz = (yz*3+yzd)/4;
+	
 	cv::Vec3d Xaxis(Xmapped[0], Xmapped[1], xz);
 	cv::Vec3d Yaxis(Ymapped[0], Ymapped[1], yz);
 	cv::Vec3d Zaxis = Yaxis.cross(Xaxis);
-	double axis_norm = cv::norm(Xaxis);
-	//cout<<"Xaxis = "<<Xaxis<<endl;
-	//cout<<"Yaxis = "<<Yaxis<<endl<<endl;
-	Zaxis = Zaxis / cv::norm(Zaxis) * axis_norm;
+	Zaxis = Zaxis / sqrt(cv::norm(Zaxis));
 	cv::Vec2d Zmapped(Zaxis[0], Zaxis[1]);
-	
+	double axis_norm = (cv::norm(Xaxis) + cv::norm(Yaxis) + cv::norm(Zaxis)) /3;
+
 	cout<<"equ11 : "<<equ11<<endl;
 	cout<<"equ12 : "<<equ12<<endl;
 	cout<<"Xaxis : "<<Xaxis<<endl;
 	cout<<"Yaxis : "<<Yaxis<<endl;
 	cout<<"Zaxis : "<<Zaxis<<endl;
-	
+
 	// normalization
 	Xaxis /= axis_norm;
 	Yaxis /= axis_norm;
 	Zaxis /= axis_norm;
 
-	double ESP = 0.0001;
 	double beta = asin(-Xaxis[2]);
 	double alpha = atan2(Xaxis[1], Xaxis[0]);
 	double gamma = atan2(Yaxis[2], Zaxis[2]);
-
-	//cv::Vec2d x(10, 0.0);
-	//cv::Vec2d y(0.0, 10);
-	//cv::Vec3d z(0.0, 0.0, 10);
-	//cv::Point2f pts1[] = {
-	//	(cv::Point2f)center,
-	//	(cv::Point2f)(center+x),
-	//	(cv::Point2f)(center+y),
-	//	(cv::Point2f)(center+x+y)};
-	//cv::Point2f pts2[] = {
-	//	(cv::Point2f)center,
-	//	(cv::Point2f)(center+Xmapped),
-	//	(cv::Point2f)(center+Ymapped),
-	//	(cv::Point2f)(center+Xmapped+Ymapped)};
-	//cv::Mat perspective_matrix = cv::getPerspectiveTransform(pts1, pts2);
-	//cv::Vec3d zd = (cv::Vec3d)cv::Mat1d(perspective_matrix * cv::Mat1d(z));
-	//cv::Vec2d Zmapped(zd[0], zd[1]);
 
 	cv::Vec2d cc = tfcv2center(center, cv::Vec2d(image.cols/2, image.rows/2));
 	object_pose[0] = cc[0] * sidelen / axis_norm;
@@ -238,16 +258,14 @@ void calc_markerpose(cv::Vec3d& object_pose, Regiondata* ccl, cv::Mat& image, do
 
 	cout<<"calc finish"<<endl;
 
-	double c_size = 5;
-		//axis_norm * 0.2;
-	//cout<<"c_size"<<c_size<<endl;
-	
+	double radius = axis_norm * 0.1;
+	if(radius<1) radius = 2;
+	cv::circle(image, ccl[T].center, radius, cv::Scalar(255,255,0), 2);
+	cv::circle(image, ccl[L].center, radius, cv::Scalar(255,255,100), -1);
+	cv::circle(image, ccl[R].center, radius, cv::Scalar(255,255,200), -1);
 	arrow(image, cv::Point(center), cv::Point(center+Xmapped), cv::Scalar(100,100,255));
 	arrow(image, cv::Point(center), cv::Point(center+Ymapped), cv::Scalar(100,255,100));
 	arrow(image, cv::Point(center), cv::Point(center+Zmapped), cv::Scalar(255,100,100));
-	cv::circle(image, ccl[T].center, c_size, cv::Scalar(255,255,0), 2);
-	cv::circle(image, ccl[L].center, c_size, cv::Scalar(255,255,100), -1);
-	cv::circle(image, ccl[R].center, c_size, cv::Scalar(255,255,200), -1);
 }
 
 void arrow(cv::Mat img, cv::Point bottom, cv::Point top, CvScalar color, int thickness, int arrowtop_size)
