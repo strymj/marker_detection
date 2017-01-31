@@ -31,14 +31,8 @@ add_library(marker_detection
 add_executable(marker_detection_node
 	src/marker_detection_node.cpp
 	)
-add_executable(pid
-	src/pid.cpp
-	)
 add_executable(keyjoy
 	src/keyjoy.cpp
-	)
-add_executable(position_correction
-	src/position_correction.cpp
 	)
 
 target_link_libraries(marker_detection_node
@@ -46,12 +40,6 @@ target_link_libraries(marker_detection_node
 	${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES}
 	)
-target_link_libraries(pid
-	${catkin_LIBRARIES}
-	)
 target_link_libraries(keyjoy
-	${catkin_LIBRARIES}
-	)
-target_link_libraries(position_correction
 	${catkin_LIBRARIES}
 	)

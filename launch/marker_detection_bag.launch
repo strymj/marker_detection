@@ -2,6 +2,7 @@
 
 <launch>
 
+	<!--
 	<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
 		<param name="video_device" value="/dev/video1" />
 		<param name="image_width" value="640" />
@@ -11,21 +12,18 @@
 		<param name="io_method" value="mmap"/>
 		<param name="framerate" value="30" />
 	</node>
+	-->
+
+	<node pkg="rosbag" type="play" name="player" args="--clock /home/strymj/catkin_ws/bags/vibration_correction_highgain_image_raw.bag"/>
 
 	<node name="marker_detection" pkg="marker_detection" type="marker_detection_node" output="screen" >
 		<param name="camera_topic" value="/usb_cam/image_raw" />
 		<param name="header_frame_id" value="camera" />
 		<param name="child_frame_id" value="marker" />
 		<param name="child_frame_rate" value="30" />
-		<param name="tri_side_length" value="0.255" />
-		<!--
-		<param name="tri_side_length" value="0.045" />
-		<param name="tri_side_length" value="0.077" />
-		<param name="tri_side_length" value="0.144" />
-		-->
-		<param name="image_show" value="false" />
-</node>
+		<param name="image_show" value="true" />
+	</node>
 
-<node name="rviz" pkg="rviz" type="rviz" output="screen" />
+	<node name="rviz" pkg="rviz" type="rviz" output="screen" />
 
 </launch>

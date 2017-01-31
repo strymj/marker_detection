@@ -51,20 +51,21 @@ void imageCallback(const sensor_msgs::ImageConstPtr&);
 // change HSV list using keyboard "qawsedrftg"
 void keychangeHSV(vector<HSV>&);
 
-void color_extract(cv::Mat, cv::Mat&, vector<HSV>);
+void color_extract(cv::Mat, cv::Mat&, vector<HSV>, int blursize = 13);
 
 // labeling (input mat is binary img)
 void label(cv::Mat, vector<Regiondata>& , unsigned int remove_pix = 200);
 
 // if marker exist -> return true 
-bool markerpose_detection(cv::Vec3d&, vector<Regiondata>, cv::Mat&, double);
-bool samesize(Regiondata*, double threshold = 0.4);
+bool markerpose_detection(cv::Mat&, cv::Mat&, vector<Regiondata>, cv::Vec3d&, double);
+bool samesize(Regiondata*, double threshold = 0.3);
 bool triangle(Regiondata*, double threshold = 0.6);
-bool colorcheck(Regiondata*, cv::Mat&);
+// if 2 circle and 1 hollow circle --> return true
+bool shape(Regiondata*, cv::Mat&);
 void calc_markerpose(cv::Vec3d&, Regiondata*, cv::Mat&, double);
 
 // draw arrow (Mat, bottom_point, top_point, color, thickness, arrowtop_size)
-void arrow(cv::Mat, cv::Point, cv::Point, CvScalar, int thickness = 2, int arrowtop_size = 10);
+void arrow(cv::Mat, cv::Point, cv::Point, cv::Scalar, int thickness = 2, int arrowtop_size = 10);
 
 // transform opencv flame to center flame
 // if inv = true  ->  center flame to opencv flame
@@ -79,6 +80,7 @@ void draw_text(cv::Vec3d, cv::Mat&);
 void BroadcastTf(string, string, cv::Vec3d);
 void PublishMarkerFlag(ros::Publisher&, bool);
 void PublishPose(ros::Publisher&, cv::Vec3d, string);
+void PublishPoseReversed(ros::Publisher&, cv::Vec3d, string);
 void PublishResultImg(image_transport::Publisher&, cv::Mat&);
 
 #endif

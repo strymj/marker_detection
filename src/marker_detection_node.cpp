@@ -29,6 +29,7 @@ int main (int argc, char** argv)
 	image_transport::Publisher ImagePub = it.advertise("ResultImage", 1);
 	ros::Publisher MarkerFlagPub = node_.advertise<std_msgs::Bool>("MarkerFlag",1);
 	ros::Publisher MarkerPosePub = node_.advertise<geometry_msgs::PoseStamped>("MarkerPose",1);
+	ros::Publisher MarkerPoseReversedPub = node_.advertise<geometry_msgs::PoseStamped>("MarkerPoseReversed",1);
 
 	// hsv threshold init as blue
 	vector<HSV> hsv_list;
@@ -40,7 +41,7 @@ int main (int argc, char** argv)
 	vector<Regiondata> regiondata;
 	cv::Vec3d markerpose(0,0,0);
 	bool MarkerFlag = false; 
-	
+
 	// start image windows
 	if(image_show_) {
 		cv::namedWindow("result");
@@ -48,25 +49,32 @@ int main (int argc, char** argv)
 		cv::startWindowThread();
 	}
 
+	cout<<"time, x, y, yaw"<<endl;
 
 	while (ros::ok())
 	{
-		if (ImgSub)
-		{
+		//result_img = cv::imread("../monograph_fig/marker.png");
+		if (ImgSub) {
 			keychangeHSV(hsv_list);   // QA WS ED RF TG -> Hue Range Sat Val List_number
-			color_extract(result_img, binary_img, hsv_list);
-			label(binary_img, regiondata, 50);
-			MarkerFlag = markerpose_detection(markerpose, regiondata, result_img, tri_side_length_);
+			color_extract(result_img.clone(), binary_img, hsv_list, 7);
+			label(binary_img, regiondata, 100);
+			MarkerFlag = markerpose_detection(result_img, binary_img, regiondata, markerpose, tri_side_length_);
 
 			BroadcastTf(header_frame_id_, child_frame_id_, markerpose);
 			PublishMarkerFlag(MarkerFlagPub, MarkerFlag);
 			PublishPose(MarkerPosePub, markerpose, header_frame_id_);
+			PublishPoseReversed(MarkerPoseReversedPub, markerpose, child_frame_id_);
 			PublishResultImg(ImagePub, result_img);
+			
+			cout<<ros::Time::now()<<", ";
+			cout<<markerpose[0]<<", ";
+			cout<<markerpose[1]<<", ";
+			cout<<markerpose[2]<<", "<<endl;
 
 			if(image_show_) {
 				cv::imshow("result", result_img);
 				cv::imshow("binary", binary_img);
-				cv::waitKey(3);  // require for imshow
+				cv::waitKey(1);  // require for imshow
 			}
 		}
 		ImgSub = false;

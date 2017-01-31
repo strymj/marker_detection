@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+
+	<node pkg="rosbag" type="play" name="player" output="screen" args="--clock /home/strymj/catkin_ws/bags/sensor_switch.bag"/>
+
+</launch>
