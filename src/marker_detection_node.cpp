@@ -4,6 +4,32 @@
 #include <vector>
 using namespace std;
 
+double sensorvalue[9] = {0,0,0,0,0,0,0,0,0};
+bool tactswflag = false;
+bool sensorflag = false;
+
+void sensorCallback(const std_msgs::Float32MultiArray& msg)
+{
+	// accel (z ^+ v-)
+	sensorvalue[0] = msg.data[0];
+	sensorvalue[1] = msg.data[2];
+	sensorvalue[2] = msg.data[1];
+	// gyro
+	sensorvalue[3] = msg.data[3];
+	sensorvalue[4] = msg.data[5];
+	sensorvalue[5] = msg.data[4];
+	// magne
+	sensorvalue[6] = msg.data[6];
+	sensorvalue[7] = msg.data[7];
+	sensorvalue[8] = msg.data[8];
+
+	sensorflag = true;
+}
+
+void tactswCallback(const std_msgs::Bool& msg)
+{
+	tactswflag = msg.data;
+}
 
 int main (int argc, char** argv)
 {
@@ -30,6 +56,12 @@ int main (int argc, char** argv)
 	ros::Publisher MarkerFlagPub = node_.advertise<std_msgs::Bool>("MarkerFlag",1);
 	ros::Publisher MarkerPosePub = node_.advertise<geometry_msgs::PoseStamped>("MarkerPose",1);
 	ros::Publisher MarkerPoseReversedPub = node_.advertise<geometry_msgs::PoseStamped>("MarkerPoseReversed",1);
+	
+	std::string tactsw_topic_, sensor_topic_;
+	node_.param("tactsw_topic", tactsw_topic_, std::string("/MPU9250_input/tactswitch"));
+	node_.param("sensor_topic", sensor_topic_, std::string("/MPU9250_input/sensordata"));
+	ros::Subscriber TactSwSub = node_.subscribe(tactsw_topic_, 1, tactswCallback);
+	ros::Subscriber SensorSub = node_.subscribe(sensor_topic_, 1, sensorCallback);
 
 	// hsv threshold init as blue
 	vector<HSV> hsv_list;
@@ -49,11 +81,14 @@ int main (int argc, char** argv)
 		cv::startWindowThread();
 	}
 
-	cout<<"time, x, y, yaw"<<endl;
+	//cout<<"time, x, y, yaw"<<endl;
 
 	while (ros::ok())
 	{
 		//result_img = cv::imread("../monograph_fig/marker.png");
+		if (tactswflag && sensorflag) {
+			cout<<sensorvalue[0]<<","<<sensorvalue[1]<<endl;
+		}
 		if (ImgSub) {
 			keychangeHSV(hsv_list);   // QA WS ED RF TG -> Hue Range Sat Val List_number
 			color_extract(result_img.clone(), binary_img, hsv_list, 7);
@@ -66,10 +101,10 @@ int main (int argc, char** argv)
 			PublishPoseReversed(MarkerPoseReversedPub, markerpose, child_frame_id_);
 			PublishResultImg(ImagePub, result_img);
 			
-			cout<<ros::Time::now()<<", ";
-			cout<<markerpose[0]<<", ";
-			cout<<markerpose[1]<<", ";
-			cout<<markerpose[2]<<", "<<endl;
+			//cout<<ros::Time::now()<<", ";
+			//cout<<markerpose[0]<<", ";
+			//cout<<markerpose[1]<<", ";
+			//cout<<markerpose[2]<<", "<<endl;
 
 			if(image_show_) {
 				cv::imshow("result", result_img);

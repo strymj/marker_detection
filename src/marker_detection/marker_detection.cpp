@@ -306,9 +306,9 @@ void draw_text(Vec3d pose, Mat& image)
 	int y2 = y0 + fontsize * 80;
 
 	char s[3][16];
-	sprintf(s[0], "%.7f", pose[0]);
-	sprintf(s[1], "%.7f", pose[1]);
-	sprintf(s[2], "%.7f", pose[2]);
+	sprintf(s[0], "%.4f", pose[0]);
+	sprintf(s[1], "%.4f", pose[1]);
+	sprintf(s[2], "%.4f", pose[2]);
 	putText(image, "X",        Point(x0, y0), font, fontsize, color_string, fontweight, CV_AA);
 	putText(image, "y",        Point(x0, y1), font, fontsize, color_string, fontweight, CV_AA);
 	putText(image, "[m]",      Point(x1, y0), font, fontsize, color_string, fontweight, CV_AA);
