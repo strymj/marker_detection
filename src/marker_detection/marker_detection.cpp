@@ -26,28 +26,27 @@ void keychangeHSV(vector<HSV>& list)
 	}
 }
 
-void color_extract(Mat input_img, Mat& output_img, vector<HSV> list, int blursize)
+void color_extract(Mat& input_img, Mat& output_img, HSV list, int blursize)
 {	
+	int huemin = (list.hue - list.range/2)%180;
+	int huemax = (list.hue + list.range/2)%180;
 	output_img = Mat::zeros(Size(input_img.cols, input_img.rows), CV_8UC1);
-	//GaussianBlur(input_img, input_img, Size(blursize,blursize),0,0);
-	//blur(input_img, blur_img, Size(blursize,blursize));
-	cvtColor(input_img, input_img, CV_BGR2HSV);
-	for(int y=0; y<input_img.rows; y++){
-		Vec3b *src_i = input_img.ptr<Vec3b>(y);
-		for(int x=0; x<input_img.cols; x++){
-			for(int i=0; i<list.size(); i++) {
-				int huemin = (list[i].hue - list[i].range/2)%180;
-				int huemax = (list[i].hue + list[i].range/2)%180;
-				if(list[i].sat < src_i[x][1] && list[i].val < src_i[x][2] &&  huemin< src_i[x][0] && src_i[x][0] < huemax) {
-					output_img.at<unsigned char>(y,x) = list[i].set;
-				}
+	cv::Mat comp_img;
+	cvtColor(input_img, comp_img, CV_BGR2HSV);
+	//GaussianBlur(comp_img, comp_img, Size(blursize,blursize),0,0);
+	//blur(comp_img, blur_img, Size(blursize,blursize));
+	for(int y=0; y<comp_img.rows; y++){
+		Vec3b *src_i = comp_img.ptr<Vec3b>(y);
+		for(int x=0; x<comp_img.cols; x++){
+			if(list.sat < src_i[x][1] && list.val < src_i[x][2] &&  huemin< src_i[x][0] && src_i[x][0] < huemax) {
+				output_img.at<unsigned char>(y,x) = 255;
 			}
 		}
 	}
 	medianBlur(output_img, output_img, blursize);
 }
 
-void label(Mat binary_img, vector<Regiondata>& regiondata, unsigned int remove_pix)
+void label(Mat& binary_img, vector<Regiondata>& regiondata, unsigned int remove_pix)
 {
 	regiondata.clear();
 	Mat label(binary_img.size(), CV_16SC1);
@@ -263,7 +262,7 @@ void calc_markerpose(Vec3d& object_pose, Regiondata* ccl, Mat& image, double sid
 	arrow(image, Point(center), Point(center+Zmapped), Scalar(255,100,100));
 }
 
-void arrow(Mat img, Point bottom, Point top, Scalar color, int thickness, int arrowtop_size)
+void arrow(Mat& img, Point bottom, Point top, Scalar color, int thickness, int arrowtop_size)
 {
 	// calc arrow
 	Vec2d vec0 = Vec2i(bottom-top);

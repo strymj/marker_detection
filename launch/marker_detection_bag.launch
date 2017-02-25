@@ -14,7 +14,7 @@
 	</node>
 	-->
 
-	<node pkg="rosbag" type="play" name="player" args="--clock /home/strymj/catkin_ws/bags/sensor_switch.bag"/>
+	<node pkg="rosbag" type="play" name="player" args="--clock /home/strymj/catkin_ws/bags/marker_image_raw.bag"/>
 
 	<node name="marker_detection" pkg="marker_detection" type="marker_detection_node" output="screen" >
 		<param name="camera_topic" value="/usb_cam/image_raw" />
@@ -25,7 +25,7 @@
 	</node>
 
 	<!--
-	<node name="rviz" pkg="rviz" type="rviz" output="screen" />
 	-->
+	<node name="rviz" pkg="rviz" type="rviz" output="screen" />
 
 </launch>

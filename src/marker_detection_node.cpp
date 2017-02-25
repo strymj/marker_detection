@@ -32,8 +32,7 @@ int main (int argc, char** argv)
 	
 	// hsv threshold init as blue
 	vector<HSV> hsv_list;
-	HSV blue   = {112, 40, 30, 40, 255};
-	hsv_list.push_back(blue);
+	HSV hsv_blue   = {112, 40, 30, 40};
 
 	vector<Regiondata> regiondata;
 	cv::Vec3d markerpose(0,0,0);
@@ -50,12 +49,9 @@ int main (int argc, char** argv)
 	while (ros::ok())
 	{
 		//result_img = cv::imread("../monograph_fig/marker.png");
-		if (tactswflag && sensorflag) {
-			cout<<sensorvalue[0]<<","<<sensorvalue[1]<<endl;
-		}
 		if (ImgSub) {
 			keychangeHSV(hsv_list);   // QA WS ED RF TG -> Hue Range Sat Val List_number
-			color_extract(result_img.clone(), binary_img, hsv_list, 7);
+			color_extract(result_img, binary_img, hsv_blue, 7);
 			label(binary_img, regiondata, 100);
 			MarkerFlag = markerpose_detection(result_img, binary_img, regiondata, markerpose, tri_side_length_);
 
