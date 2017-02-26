@@ -2,44 +2,51 @@
 using namespace std;
 using namespace cv;
 
-void keychangeHSV(vector<HSV>& list)
+void keychangeHSV(HSV& list)
 {
 	static int n = 0;
-	enum {H_UP='q', H_DN='a', R_UP='w', R_DN='s', S_UP='e', S_DN='d', V_UP='r', V_DN='f', N_UP='t', N_DN='g'};
+	enum {H_UP='q', H_DN='a', R_UP='w', R_DN='s', S_UP='e', S_DN='d', V_UP='r', V_DN='f'};
 	if (kbhit()) {
 		short int key;
 		key = getchar();
 		switch(key){
-			case H_UP: list[n].hue += 2; if (list[n].hue > 179) list[n].hue -= 180; break;
-			case H_DN: list[n].hue -= 2; if (list[n].hue <   0) list[n].hue += 180; break;
-			case R_UP: list[n].range += 2; break;
-			case R_DN: list[n].range -= 2; break;
-			case S_UP: list[n].sat += 2; break;
-			case S_DN: list[n].sat -= 2; break;
-			case V_UP: list[n].val += 2; break;
-			case V_DN: list[n].val -= 2; break;
-			case N_UP: n++; if (list.size()<=n) n = list.size()-1; break;
-			case N_DN: n--; if (n<0) n = 0; break;
+			case H_UP: list.hue = ++list.hue%180; break;
+			case H_DN: list.hue = --list.hue%180; break;
+			case R_UP: ++list.hue_range; break;
+			case R_DN: --list.hue_range; break;
+			case S_UP: ++list.sat_min; break;
+			case S_DN: --list.sat_min; break;
+			case V_UP: ++list.val_min; break;
+			case V_DN: --list.val_min; break;
 			default:;
 		}
-		cout<<"list["<<n<<"] : "<<" hue:"<<list[n].hue<<" range:"<<list[n].range<<" sat:"<<list[n].sat<<" val:"<<list[n].val<<endl;
+		cout<<" hue:"<<list.hue<<" range:"<<list.hue_range<<" sat_min:"<<list.sat_min<<" val_min:"<<list.val_min<<endl;
 	}
 }
 
 void color_extract(Mat& input_img, Mat& output_img, HSV list, int blursize)
 {	
-	int huemin = (list.hue - list.range/2)%180;
-	int huemax = (list.hue + list.range/2)%180;
+	int hue_min = (list.hue - list.hue_range/2)%180;
+	int hue_max = (list.hue + list.hue_range/2)%180;
 	output_img = Mat::zeros(Size(input_img.cols, input_img.rows), CV_8UC1);
 	cv::Mat comp_img;
 	cvtColor(input_img, comp_img, CV_BGR2HSV);
-	//GaussianBlur(comp_img, comp_img, Size(blursize,blursize),0,0);
-	//blur(comp_img, blur_img, Size(blursize,blursize));
 	for(int y=0; y<comp_img.rows; y++){
 		Vec3b *src_i = comp_img.ptr<Vec3b>(y);
 		for(int x=0; x<comp_img.cols; x++){
-			if(list.sat < src_i[x][1] && list.val < src_i[x][2] &&  huemin< src_i[x][0] && src_i[x][0] < huemax) {
+			if(hue_min<=hue_max) {
+				if(list.sat_min < src_i[x][1]
+					&& list.val_min < src_i[x][2] 
+					&& hue_min< src_i[x][0] && src_i[x][0] < hue_max) {
 				output_img.at<unsigned char>(y,x) = 255;
+				}
+			}
+			else {
+				if(list.sat_min < src_i[x][1]
+					&& list.val_min < src_i[x][2] 
+					&& (src_i[x][0] < hue_max || hue_min< src_i[x][0])) {
+				output_img.at<unsigned char>(y,x) = 255;
+				}
 			}
 		}
 	}

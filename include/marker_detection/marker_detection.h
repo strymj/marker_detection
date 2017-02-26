@@ -40,16 +40,15 @@ struct Regiondata
 struct HSV
 {
 	int hue;
-	int range;
-	int sat;
-	int val;
-	int set;
+	int hue_range;
+	int sat_min;
+	int val_min;
 };
 
 void imageCallback(const sensor_msgs::ImageConstPtr&);
 
 // change HSV list using keyboard "qawsedrftg"
-void keychangeHSV(vector<HSV>&);
+void keychangeHSV(HSV&);
 
 void color_extract(cv::Mat&, cv::Mat&, HSV, int blursize = 13);
 

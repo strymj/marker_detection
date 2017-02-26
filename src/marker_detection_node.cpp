@@ -31,7 +31,6 @@ int main (int argc, char** argv)
 	ros::Publisher MarkerPoseReversedPub = node_.advertise<geometry_msgs::PoseStamped>("MarkerPoseReversed",1);
 	
 	// hsv threshold init as blue
-	vector<HSV> hsv_list;
 	HSV hsv_blue   = {112, 40, 30, 40};
 
 	vector<Regiondata> regiondata;
@@ -46,11 +45,10 @@ int main (int argc, char** argv)
 		cv::startWindowThread();
 	}
 
-	while (ros::ok())
-	{
+	while (ros::ok()) {
 		//result_img = cv::imread("../monograph_fig/marker.png");
 		if (ImgSub) {
-			keychangeHSV(hsv_list);   // QA WS ED RF TG -> Hue Range Sat Val List_number
+			keychangeHSV(hsv_blue);   // QA WS ED RF TG -> Hue Range Sat Val List_number
 			color_extract(result_img, binary_img, hsv_blue, 7);
 			label(binary_img, regiondata, 100);
 			MarkerFlag = markerpose_detection(result_img, binary_img, regiondata, markerpose, tri_side_length_);
